@@ -1,10 +1,10 @@
 ## Project Information
 Project:      ReelNest
-Phase:        6
+Phase:        6,7 & 8
 Organization: Genuisoft
 Mentore:      Shahwar Khan
 Submitted by: Ayesha 
-Date:         21 Nov 2026
+Date:         25 Nov 2026
 
 # reel_nest
 1: Project Introduction
@@ -22,14 +22,23 @@ ReelNest is a Flutter-based movie discovery application that allows users to exp
 - Light and Dark Mode
 - About ReelNest and Help & Support
 - Custom splash screen and app icon
-
+2.1: phase 7&8
+- User registration and login.
+- Firebase email and password authentication.
+- Forgot password functionality.
+- Form validation.
+- User-friendly error and success messages.
+- Application theme management.
+- Local settings storage
 3: Technologies Used
 - Flutter
 - Dart
 - TMDB API
 - REST API
 - JSON
-
+3.1: phase 7&8
+- Firebase
+- Provider
 4: Packages Used
 - http
 - shared_preferences
@@ -38,6 +47,10 @@ ReelNest is a Flutter-based movie discovery application that allows users to exp
 - youtube_player_flutter
 - flutter_launcher_icons
 - flutter_native_splash
+4.1: phase 7&8
+- provider
+- firebase_core
+- firebase_auth
 
 5: Problems Faced and Solutions
 
@@ -65,6 +78,26 @@ Solution: Added the correct flutter_launcher_icons configuration to pubspec.yaml
 Problem: Android's native splash screen displayed separately before the application's custom Flutter splash screen.
 Solution: Configured flutter_native_splash to customize the Android system splash screen and align its appearance with the application's splash d
 
+5.1: phase 7&8
+During the development of ReelNest, I faced several technical issues and resolved them through debugging and configuration changes.
+Problem 1: Firebase Initialization Issue
+Problem: The application faced an issue during Firebase initialization and could not start properly.
+Solution: Checked Firebase configuration and corrected the Google Services Gradle plugin setup.
+Problem 2: Firebase Android Configuration
+Problem: Firebase was not connecting properly with the Android project.
+Solution: Verified the google-services.json file and corrected the Gradle configuration.
+Problem 3: Dart Compilation Error
+Problem: A compilation error occurred because withValues() was used inside a const TextStyle.
+Solution: Replaced the dynamic color expression with a fixed Color value.
+Problem 4: Managing Application State and Theme
+Problem: Application state and theme settings needed to be managed and preserved properly.
+Solution: Applied state management concepts and used SharedPreferences to save simple application settings.
+Problem 5: Form Validation
+Problem: Authentication forms needed proper validation to prevent invalid user input.
+Solution: Implemented form validation before submitting login, signup, and password reset requests.
+Problem 6: Authentication Error Handling
+Problem: Authentication failures needed to be communicated clearly to users.
+Solution: Added error handling and user-friendly SnackBar messages for different authentication situations.
 6: What I Learned
 - Integrating REST APIs in Flutter.
 - Fetching and handling JSON data.

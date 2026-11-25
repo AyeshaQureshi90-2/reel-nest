@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
 import '../models/movie_model.dart';
+import '../models/movie_details_model.dart';
 
 class TmdbApiService {
   static Future<List<MovieModel>> searchContent({
@@ -40,6 +41,7 @@ class TmdbApiService {
 
   static Future<List<MovieModel>> fetchTrendingMovies() async {
     final results = await _request('/trending/movie/week', {});
+
     return _convertResults(
       results,
       forcedCategory: 'Movie',
@@ -153,6 +155,45 @@ class TmdbApiService {
     }
   }
 
+  // Fetch complete movie or TV show details and credits.
+  static Future<MovieDetailsModel> fetchMovieDetails({
+    required int movieId,
+    required String mediaType,
+  }) async {
+    _validateMediaType(mediaType);
+
+    final results = await Future.wait([
+      _requestMap('/$mediaType/$movieId', {}),
+      _requestMap('/$mediaType/$movieId/credits', {}),
+    ]);
+
+    return MovieDetailsModel.fromJson(
+      results[0],
+      credits: results[1],
+      mediaType: mediaType,
+    );
+  }
+
+  // Fetch similar movies or TV shows.
+  static Future<List<MovieModel>> fetchSimilarMovies({
+    required int movieId,
+    required String mediaType,
+  }) async {
+    _validateMediaType(mediaType);
+
+    final results = await _request(
+      '/$mediaType/$movieId/recommendations',
+      {},
+    );
+
+    return _convertResults(
+      results,
+      forcedCategory: mediaType == 'tv' ? 'TV Show' : 'Movie',
+      forcedMediaType: mediaType,
+    );
+  }
+
+  // Fetch YouTube trailer key.
   static Future<String?> fetchYoutubeTrailerKey({
     required int movieId,
     required String mediaType,
@@ -197,7 +238,31 @@ class TmdbApiService {
     return trailer['key'] as String;
   }
 
+  static void _validateMediaType(String mediaType) {
+    if (mediaType != 'movie' && mediaType != 'tv') {
+      throw ArgumentError('Media type must be movie or tv.');
+    }
+  }
+
+  // Request a TMDB endpoint that returns a list.
   static Future<List<dynamic>> _request(
+    String endpoint,
+    Map<String, String> parameters,
+  ) async {
+    final decodedData = await _sendRequest(endpoint, parameters);
+
+    return decodedData['results'] as List<dynamic>? ?? [];
+  }
+
+  // Request a TMDB endpoint that returns a complete object.
+  static Future<Map<String, dynamic>> _requestMap(
+    String endpoint,
+    Map<String, String> parameters,
+  ) async {
+    return _sendRequest(endpoint, parameters);
+  }
+
+  static Future<Map<String, dynamic>> _sendRequest(
     String endpoint,
     Map<String, String> parameters,
   ) async {
@@ -225,7 +290,7 @@ class TmdbApiService {
     final decodedData =
         jsonDecode(response.body) as Map<String, dynamic>;
 
-    return decodedData['results'] as List<dynamic>? ?? [];
+    return decodedData;
   }
 
   static List<MovieModel> _convertResults(

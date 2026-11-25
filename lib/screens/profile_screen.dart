@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'profile/edit_profile_screen.dart';
 import 'profile/settings_screen.dart';
@@ -25,6 +26,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? profileName;
   String? profileEmail;
   String? profileImagePath;
+
+  bool _isLoggingOut = false;
 
   bool get isDarkMode =>
       Theme.of(context).brightness == Brightness.dark;
@@ -103,6 +106,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
         builder: (context) => const HelpSupportScreen(),
       ),
     );
+  }
+
+  Future<void> _logout() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: cardColor,
+          title: Text(
+            'Logout',
+            style: TextStyle(color: primaryTextColor),
+          ),
+          content: Text(
+            'Are you sure you want to logout?',
+            style: TextStyle(color: secondaryTextColor),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: primaryTextColor),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              child: Text(
+                'Logout',
+                style: TextStyle(color: primaryTextColor),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLogout != true || !mounted) return;
+
+    setState(() {
+      _isLoggingOut = true;
+    });
+
+    try {
+      await FirebaseAuth.instance.signOut();
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Logout failed. Please try again.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoggingOut = false;
+        });
+      }
+    }
   }
 
   Widget _buildProfileImage() {
@@ -228,6 +294,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _openHelpSupport,
               ),
 
+              const SizedBox(height: 15),
+
+              _buildLogoutOption(),
+
               const SizedBox(height: 25),
 
               Text(
@@ -275,6 +345,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
           size: 16,
         ),
         onTap: onTap,
+      ),
+    );
+  }
+
+  Widget _buildLogoutOption() {
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: ListTile(
+        leading: const Icon(
+          Icons.logout_rounded,
+          color: peach,
+          size: 25,
+        ),
+        title: Text(
+          'Logout',
+          style: TextStyle(
+            color: primaryTextColor,
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        trailing: _isLoggingOut
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                ),
+              )
+            : Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: arrowColor,
+                size: 16,
+              ),
+        onTap: _isLoggingOut ? null : _logout,
       ),
     );
   }

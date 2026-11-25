@@ -1,3 +1,4 @@
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -183,9 +184,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile updated successfully!'),
-          backgroundColor: Color(0xFF2E8B57),
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(
+                Icons.check_circle_rounded,
+                color: dark,
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Profile updated successfully!',
+                  style: TextStyle(
+                    color: dark,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: peach,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 3),
         ),
       );
 

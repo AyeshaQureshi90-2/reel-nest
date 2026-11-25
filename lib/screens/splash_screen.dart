@@ -1,6 +1,6 @@
 
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
+import '../Authentications/auth_gate.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -17,17 +17,17 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _navigateToHome();
+    _navigateToAuth();
   }
 
-  void _navigateToHome() {
+  void _navigateToAuth() {
     Future.delayed(const Duration(seconds: 3), () {
       if (!mounted) return;
 
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const HomeScreen(),
+          builder: (context) => const AuthGate(),
         ),
       );
     });
@@ -56,7 +56,6 @@ class _SplashScreenState extends State<SplashScreen> {
             children: [
               const Spacer(),
 
-              // ReelNest Custom Logo
               Image.asset(
                 'assets/images/reel_nest_splash.png',
                 width: 280,
@@ -66,7 +65,6 @@ class _SplashScreenState extends State<SplashScreen> {
 
               const SizedBox(height: 35),
 
-              // App Name
               RichText(
                 text: const TextSpan(
                   children: [
@@ -92,7 +90,6 @@ class _SplashScreenState extends State<SplashScreen> {
 
               const SizedBox(height: 12),
 
-              // Tagline
               const Text(
                 'Your World of Movies',
                 style: TextStyle(
@@ -112,7 +109,6 @@ class _SplashScreenState extends State<SplashScreen> {
 
               const Spacer(),
 
-              // Loading Section
               const Icon(
                 Icons.local_movies_rounded,
                 color: peach,
@@ -144,7 +140,6 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                 ),
               ),
-
 
               const SizedBox(height: 35),
             ],
