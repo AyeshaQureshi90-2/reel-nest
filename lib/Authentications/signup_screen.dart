@@ -25,6 +25,8 @@ class _SignupScreenState extends State<SignupScreen> {
   static const Color peachColor = Color(0xFFFDBA9B);
   static const Color blackColor = Color(0xFF08090D);
   static const Color darkTextColor = Color(0xFF29201D);
+  static const Color lightFieldColor = Color(0xFFF5F0ED);
+  static const Color darkFieldColor = Color(0xFF191A20);
 
   @override
   void dispose() {
@@ -36,6 +38,8 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   void _showSuccessMessage(String message) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -69,15 +73,28 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(
-            color: peachColor,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+        content: Row(
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              color: peachColor,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: peachColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
         ),
         backgroundColor: blackColor,
         behavior: SnackBarBehavior.floating,
@@ -85,8 +102,33 @@ class _SignupScreenState extends State<SignupScreen> {
           borderRadius: BorderRadius.circular(14),
         ),
         margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
       ),
     );
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter a password';
+    }
+
+    if (value.length < 8) {
+      return 'Password must contain at least 8 characters';
+    }
+
+    if (!RegExp(r'[A-Z]').hasMatch(value)) {
+      return 'Password must contain at least 1 capital letter';
+    }
+
+    if (!RegExp(r'[0-9]').hasMatch(value)) {
+      return 'Password must contain at least 1 number';
+    }
+
+    if (!RegExp(r'[^A-Za-z0-9\s]').hasMatch(value)) {
+      return 'Password must contain at least 1 special character';
+    }
+
+    return null;
   }
 
   Future<void> _signup() async {
@@ -117,7 +159,6 @@ class _SignupScreenState extends State<SignupScreen> {
       if (!mounted) return;
 
       Navigator.of(context).pop();
-
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
 
@@ -125,25 +166,44 @@ class _SignupScreenState extends State<SignupScreen> {
 
       switch (e.code) {
         case 'email-already-in-use':
-          message = 'This email is already registered.';
+          message = 'This email is already registered. Please login.';
           break;
+
         case 'invalid-email':
-          message = 'Please enter a valid email address.';
+          message = 'Invalid email address. Please check your email.';
           break;
+
         case 'weak-password':
-          message = 'Please choose a stronger password.';
+          message = 'Password is too weak. Please choose a stronger password.';
           break;
+
         case 'operation-not-allowed':
           message = 'Email/Password authentication is not enabled.';
           break;
+
         case 'network-request-failed':
-          message = 'Please check your internet connection.';
+          message = 'Network error. Please check your internet connection.';
           break;
+
         case 'too-many-requests':
           message = 'Too many attempts. Please try again later.';
           break;
+
+        case 'email-already-exists':
+          message = 'This email is already in use.';
+          break;
+
+        case 'invalid-credential':
+          message = 'Invalid account information. Please check your details.';
+          break;
+
+        case 'internal-error':
+          message = 'A server error occurred. Please try again.';
+          break;
+
         default:
-          message = e.message ?? 'Signup failed. Please try again.';
+          message = e.message ??
+              'Signup failed (${e.code}). Please try again.';
       }
 
       _showErrorMessage(message);
@@ -165,21 +225,26 @@ class _SignupScreenState extends State<SignupScreen> {
   InputDecoration _inputDecoration({
     required String hint,
     required IconData icon,
+    required bool isDark,
+    required Color textColor,
+    required Color iconColor,
     Widget? suffixIcon,
   }) {
+    final fieldColor = isDark ? darkFieldColor : lightFieldColor;
+
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(
-        color: Color(0xA6FDBA9B),
+      hintStyle: TextStyle(
+        color: textColor.withValues(alpha: 0.55),
         fontSize: 14,
       ),
       prefixIcon: Icon(
         icon,
-        color: peachColor,
+        color: iconColor,
       ),
       suffixIcon: suffixIcon,
       filled: true,
-      fillColor: blackColor,
+      fillColor: fieldColor,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: 16,
         vertical: 18,
@@ -191,13 +256,13 @@ class _SignupScreenState extends State<SignupScreen> {
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(
-          color: blackColor.withValues(alpha: 0.15),
+          color: textColor.withValues(alpha: 0.15),
         ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: blackColor,
+        borderSide: BorderSide(
+          color: iconColor,
           width: 2,
         ),
       ),
@@ -217,13 +282,13 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  Widget _buildLabel(String label) {
+  Widget _buildLabel(String label, Color textColor) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 9),
       child: Text(
         label,
-        style: const TextStyle(
-          color: blackColor,
+        style: TextStyle(
+          color: textColor,
           fontWeight: FontWeight.w700,
           fontSize: 14,
         ),
@@ -231,22 +296,38 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  Widget _buildPasswordToggle(bool isVisible, VoidCallback onPressed) {
+  Widget _buildPasswordToggle(
+    bool isVisible,
+    VoidCallback onPressed,
+    Color iconColor,
+  ) {
     return IconButton(
       onPressed: onPressed,
       icon: Icon(
         isVisible
             ? Icons.visibility_off_outlined
             : Icons.visibility_outlined,
-        color: peachColor,
+        color: iconColor,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final backgroundColor = isDark ? blackColor : peachColor;
+    final textColor = isDark ? peachColor : blackColor;
+    final secondaryTextColor =
+        isDark ? const Color(0xFFD6B8AA) : darkTextColor;
+    final iconColor = isDark ? peachColor : const Color(0xFF9B5035);
+    final fieldTextColor = isDark ? peachColor : blackColor;
+
+    final buttonBackground = isDark ? blackColor : peachColor;
+    final buttonForeground = isDark ? peachColor : blackColor;
+
     return Scaffold(
-      backgroundColor: peachColor,
+      backgroundColor: backgroundColor,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -264,12 +345,12 @@ class _SignupScreenState extends State<SignupScreen> {
                       height: 75,
                       width: 75,
                       decoration: BoxDecoration(
-                        color: blackColor,
+                        color: isDark ? peachColor : blackColor,
                         borderRadius: BorderRadius.circular(22),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.person_add_alt_1,
-                        color: peachColor,
+                        color: isDark ? blackColor : peachColor,
                         size: 38,
                       ),
                     ),
@@ -277,43 +358,46 @@ class _SignupScreenState extends State<SignupScreen> {
 
                   const SizedBox(height: 25),
 
-                  const Center(
+                  Center(
                     child: Text(
                       'Create Account',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: blackColor,
+                        color: textColor,
                       ),
                     ),
                   ),
 
                   const SizedBox(height: 10),
 
-                  const Center(
+                  Center(
                     child: Text(
                       'Join ReelNest and discover your next favorite movie.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 14,
-                        color: darkTextColor,
+                        color: secondaryTextColor,
                       ),
                     ),
                   ),
 
                   const SizedBox(height: 30),
 
-                  _buildLabel('Full Name'),
+                  _buildLabel('Full Name', textColor),
 
                   TextFormField(
                     controller: _nameController,
                     keyboardType: TextInputType.name,
                     textCapitalization: TextCapitalization.words,
-                    style: const TextStyle(color: peachColor),
-                    cursorColor: peachColor,
+                    style: TextStyle(color: fieldTextColor),
+                    cursorColor: iconColor,
                     decoration: _inputDecoration(
                       hint: 'Enter your full name',
                       icon: Icons.person_outline,
+                      isDark: isDark,
+                      textColor: fieldTextColor,
+                      iconColor: iconColor,
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -330,16 +414,19 @@ class _SignupScreenState extends State<SignupScreen> {
 
                   const SizedBox(height: 20),
 
-                  _buildLabel('Email Address'),
+                  _buildLabel('Email Address', textColor),
 
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    style: const TextStyle(color: peachColor),
-                    cursorColor: peachColor,
+                    style: TextStyle(color: fieldTextColor),
+                    cursorColor: iconColor,
                     decoration: _inputDecoration(
                       hint: 'Enter your email',
                       icon: Icons.email_outlined,
+                      isDark: isDark,
+                      textColor: fieldTextColor,
+                      iconColor: iconColor,
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -358,16 +445,19 @@ class _SignupScreenState extends State<SignupScreen> {
 
                   const SizedBox(height: 20),
 
-                  _buildLabel('Password'),
+                  _buildLabel('Password', textColor),
 
                   TextFormField(
                     controller: _passwordController,
                     obscureText: !_isPasswordVisible,
-                    style: const TextStyle(color: peachColor),
-                    cursorColor: peachColor,
+                    style: TextStyle(color: fieldTextColor),
+                    cursorColor: iconColor,
                     decoration: _inputDecoration(
-                      hint: 'Create a password',
+                      hint: 'Create a strong password',
                       icon: Icons.lock_outline,
+                      isDark: isDark,
+                      textColor: fieldTextColor,
+                      iconColor: iconColor,
                       suffixIcon: _buildPasswordToggle(
                         _isPasswordVisible,
                         () {
@@ -375,33 +465,40 @@ class _SignupScreenState extends State<SignupScreen> {
                             _isPasswordVisible = !_isPasswordVisible;
                           });
                         },
+                        iconColor,
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a password';
-                      }
+                    validator: _validatePassword,
+                  ),
 
-                      if (value.length < 6) {
-                        return 'Password must be at least 6 characters';
-                      }
+                  const SizedBox(height: 8),
 
-                      return null;
-                    },
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Text(
+                      'Password must contain 8 characters, 1 capital letter, 1 number and 1 special character.',
+                      style: TextStyle(
+                        color: secondaryTextColor,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
 
                   const SizedBox(height: 20),
 
-                  _buildLabel('Confirm Password'),
+                  _buildLabel('Confirm Password', textColor),
 
                   TextFormField(
                     controller: _confirmPasswordController,
                     obscureText: !_isConfirmPasswordVisible,
-                    style: const TextStyle(color: peachColor),
-                    cursorColor: peachColor,
+                    style: TextStyle(color: fieldTextColor),
+                    cursorColor: iconColor,
                     decoration: _inputDecoration(
                       hint: 'Confirm your password',
                       icon: Icons.lock_reset_outlined,
+                      isDark: isDark,
+                      textColor: fieldTextColor,
+                      iconColor: iconColor,
                       suffixIcon: _buildPasswordToggle(
                         _isConfirmPasswordVisible,
                         () {
@@ -410,6 +507,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                 !_isConfirmPasswordVisible;
                           });
                         },
+                        iconColor,
                       ),
                     ),
                     validator: (value) {
@@ -432,10 +530,10 @@ class _SignupScreenState extends State<SignupScreen> {
                     children: [
                       Checkbox(
                         value: _acceptTerms,
-                        activeColor: blackColor,
-                        checkColor: peachColor,
-                        side: const BorderSide(
-                          color: blackColor,
+                        activeColor: isDark ? peachColor : blackColor,
+                        checkColor: isDark ? blackColor : peachColor,
+                        side: BorderSide(
+                          color: textColor,
                           width: 1.5,
                         ),
                         onChanged: _isLoading
@@ -446,12 +544,12 @@ class _SignupScreenState extends State<SignupScreen> {
                                 });
                               },
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'I agree to the Terms & Conditions',
                           style: TextStyle(
                             fontSize: 13,
-                            color: blackColor,
+                            color: textColor,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -467,21 +565,23 @@ class _SignupScreenState extends State<SignupScreen> {
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _signup,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: blackColor,
-                        foregroundColor: peachColor,
+                        backgroundColor: buttonBackground,
+                        foregroundColor: buttonForeground,
                         disabledBackgroundColor:
-                            blackColor.withValues(alpha: 0.65),
+                            buttonBackground.withValues(alpha: 0.65),
+                        disabledForegroundColor:
+                            buttonForeground.withValues(alpha: 0.65),
                         elevation: 2,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
                       child: _isLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               height: 24,
                               width: 24,
                               child: CircularProgressIndicator(
-                                color: peachColor,
+                                color: buttonForeground,
                                 strokeWidth: 2.5,
                               ),
                             )
@@ -500,10 +600,12 @@ class _SignupScreenState extends State<SignupScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
-                        'Already have an account? ',
-                        style: TextStyle(
-                          color: darkTextColor,
+                      Flexible(
+                        child: Text(
+                          'Already have an account? ',
+                          style: TextStyle(
+                            color: secondaryTextColor,
+                          ),
                         ),
                       ),
                       TextButton(
@@ -512,10 +614,10 @@ class _SignupScreenState extends State<SignupScreen> {
                             : () {
                                 Navigator.pop(context);
                               },
-                        child: const Text(
+                        child: Text(
                           'Login',
                           style: TextStyle(
-                            color: blackColor,
+                            color: textColor,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

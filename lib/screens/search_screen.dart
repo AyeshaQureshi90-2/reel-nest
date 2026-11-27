@@ -1,3 +1,4 @@
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -8,7 +9,14 @@ import '../services/favorites_service.dart';
 import 'movie_details_screen.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  final bool isGuest;
+  final VoidCallback? onRequireLogin;
+
+  const SearchScreen({
+    super.key,
+    this.isGuest = false,
+    this.onRequireLogin,
+  });
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -152,6 +160,11 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _toggleFavorite(MovieModel movie) async {
+    if (widget.isGuest) {
+      widget.onRequireLogin?.call();
+      return;
+    }
+
     final isAlreadyFavorite =
         FavoritesService.favoritesNotifier.value.any(
       (item) =>
@@ -187,7 +200,11 @@ class _SearchScreenState extends State<SearchScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MovieDetailsScreen(movie: movie),
+        builder: (context) => MovieDetailsScreen(
+          movie: movie,
+          isGuest: widget.isGuest,
+          onRequireLogin: widget.onRequireLogin,
+        ),
       ),
     );
   }

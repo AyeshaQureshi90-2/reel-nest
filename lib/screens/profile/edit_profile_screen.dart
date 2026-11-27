@@ -2,6 +2,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -63,11 +64,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _loadProfile() async {
     final prefs = await SharedPreferences.getInstance();
+    final user = FirebaseAuth.instance.currentUser;
 
     if (!mounted) return;
 
-    _nameController.text = prefs.getString('profile_name') ?? '';
-    _emailController.text = prefs.getString('profile_email') ?? '';
+    _nameController.text =
+        user?.displayName?.trim().isNotEmpty == true
+            ? user!.displayName!.trim()
+            : prefs.getString('profile_name') ?? '';
+
+    _emailController.text =
+        user?.email?.trim().isNotEmpty == true
+            ? user!.email!.trim()
+            : prefs.getString('profile_email') ?? '';
 
     setState(() {
       _profileImagePath = prefs.getString('profile_image_path');
@@ -112,21 +121,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return null;
   }
 
-  String? _validateEmail(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Please enter your email';
-    }
-
-    final emailPattern =
-        RegExp(r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
-
-    if (!emailPattern.hasMatch(value.trim())) {
-      return 'Please enter a valid email address';
-    }
-
-    return null;
-  }
-
   Future<String?> _saveProfileImage() async {
     if (_newImagePath == null) {
       return _profileImagePath;
@@ -159,18 +153,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     try {
       final prefs = await SharedPreferences.getInstance();
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        throw Exception('No authenticated user found.');
+      }
+
+      final updatedName = _nameController.text.trim();
+
+      await user.updateDisplayName(updatedName);
+      await user.reload();
 
       final savedImagePath = await _saveProfileImage();
 
-      await prefs.setString(
-        'profile_name',
-        _nameController.text.trim(),
-      );
-
-      await prefs.setString(
-        'profile_email',
-        _emailController.text.trim(),
-      );
+      await prefs.setString('profile_name', updatedName);
 
       if (savedImagePath != null) {
         await prefs.setString(
@@ -215,6 +211,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
 
       Navigator.pop(context, true);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isSaving = false;
+      });
+
+      String message;
+
+      switch (e.code) {
+        case 'requires-recent-login':
+          message =
+              'Please login again before updating your profile.';
+          break;
+        case 'network-request-failed':
+          message = 'Please check your internet connection.';
+          break;
+        default:
+          message = e.message ?? 'Unable to update your profile.';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
 
@@ -360,12 +383,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                       TextFormField(
                         controller: _emailController,
-                        validator: _validateEmail,
+                        readOnly: true,
                         keyboardType: TextInputType.emailAddress,
                         style: TextStyle(color: primaryTextColor),
                         decoration: _inputDecoration(
-                          'Enter your email',
+                          'Your registered email',
                           Icons.email_outlined,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      Text(
+                        'Your registered email is managed securely by your account.',
+                        style: TextStyle(
+                          color: secondaryTextColor,
+                          fontSize: 12,
                         ),
                       ),
 
@@ -419,10 +452,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(color: secondaryTextColor),
-      prefixIcon: const Icon(
-        Icons.person_outline_rounded,
-        color: peach,
-      ),
+      prefixIcon: Icon(icon, color: peach),
       filled: true,
       fillColor: cardColor,
       border: OutlineInputBorder(
@@ -454,8 +484,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           color: Colors.redAccent,
         ),
       ),
-    ).copyWith(
-      prefixIcon: Icon(icon, color: peach),
     );
   }
 }

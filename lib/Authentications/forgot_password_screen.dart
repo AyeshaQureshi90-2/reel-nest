@@ -20,6 +20,8 @@ class _ForgotPasswordScreenState
   static const Color peachColor = Color(0xFFFDBA9B);
   static const Color blackColor = Color(0xFF08090D);
   static const Color darkTextColor = Color(0xFF29201D);
+  static const Color lightFieldColor = Color(0xFFF5F0ED);
+  static const Color darkFieldColor = Color(0xFF191A20);
 
   @override
   void dispose() {
@@ -27,21 +29,27 @@ class _ForgotPasswordScreenState
     super.dispose();
   }
 
-  void _showSuccessMessage(String message) {
+  void _showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            const Icon(
-              Icons.check_circle_rounded,
-              color: blackColor,
+            Icon(
+              isError
+                  ? Icons.error_outline_rounded
+                  : Icons.check_circle_rounded,
+              color: isError ? peachColor : blackColor,
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(
-                  color: blackColor,
+                style: TextStyle(
+                  color: isError ? peachColor : blackColor,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -49,7 +57,7 @@ class _ForgotPasswordScreenState
             ),
           ],
         ),
-        backgroundColor: peachColor,
+        backgroundColor: isError ? blackColor : peachColor,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
@@ -60,31 +68,8 @@ class _ForgotPasswordScreenState
     );
   }
 
-  void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(
-            color: peachColor,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        backgroundColor: blackColor,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
-
   Future<void> _resetPassword() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
@@ -97,9 +82,8 @@ class _ForgotPasswordScreenState
 
       if (!mounted) return;
 
-      _showSuccessMessage(
-        'If an account exists for this email, '
-        'you will receive a password reset link.',
+      _showMessage(
+        'Password reset link sent. Please check your email inbox and spam folder.',
       );
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
@@ -111,7 +95,7 @@ class _ForgotPasswordScreenState
           message = 'Please enter a valid email address.';
           break;
         case 'user-not-found':
-          message = 'No account found with this email.';
+          message = 'No account found with this email address.';
           break;
         case 'network-request-failed':
           message = 'Please check your internet connection.';
@@ -119,16 +103,20 @@ class _ForgotPasswordScreenState
         case 'too-many-requests':
           message = 'Too many attempts. Please try again later.';
           break;
+        case 'operation-not-allowed':
+          message = 'Password reset is currently unavailable.';
+          break;
         default:
-          message = e.message ?? 'Unable to send reset email.';
+          message = 'Unable to send reset link. Please try again.';
       }
 
-      _showErrorMessage(message);
+      _showMessage(message, isError: true);
     } catch (e) {
       if (!mounted) return;
 
-      _showErrorMessage(
+      _showMessage(
         'Something went wrong. Please try again.',
+        isError: true,
       );
     } finally {
       if (mounted) {
@@ -139,19 +127,23 @@ class _ForgotPasswordScreenState
     }
   }
 
-  InputDecoration _inputDecoration() {
+  InputDecoration _inputDecoration({
+    required bool isDark,
+    required Color textColor,
+    required Color iconColor,
+  }) {
     return InputDecoration(
       hintText: 'Enter your registered email',
-      hintStyle: const TextStyle(
-        color: Color(0xA6FDBA9B),
+      hintStyle: TextStyle(
+        color: textColor.withValues(alpha: 0.55),
         fontSize: 14,
       ),
-      prefixIcon: const Icon(
+      prefixIcon: Icon(
         Icons.email_outlined,
-        color: peachColor,
+        color: iconColor,
       ),
       filled: true,
-      fillColor: blackColor,
+      fillColor: isDark ? darkFieldColor : lightFieldColor,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: 16,
         vertical: 18,
@@ -163,13 +155,13 @@ class _ForgotPasswordScreenState
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(
-          color: blackColor.withValues(alpha: 0.15),
+          color: textColor.withValues(alpha: 0.15),
         ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: blackColor,
+        borderSide: BorderSide(
+          color: iconColor,
           width: 2,
         ),
       ),
@@ -191,18 +183,28 @@ class _ForgotPasswordScreenState
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final backgroundColor = isDark ? blackColor : peachColor;
+    final textColor = isDark ? peachColor : blackColor;
+    final secondaryTextColor =
+        isDark ? const Color(0xFFD6B8AA) : darkTextColor;
+    final iconColor = isDark ? peachColor : const Color(0xFF9B5035);
+    final fieldTextColor = isDark ? peachColor : blackColor;
+
+    final buttonBackground = isDark ? blackColor : peachColor;
+    final buttonForeground = isDark ? peachColor : blackColor;
+
     return Scaffold(
-      backgroundColor: peachColor,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: peachColor,
+        backgroundColor: backgroundColor,
         elevation: 0,
         leading: IconButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          icon: const Icon(
+          onPressed: () => Navigator.pop(context),
+          icon: Icon(
             Icons.arrow_back_ios_new,
-            color: blackColor,
+            color: textColor,
           ),
         ),
       ),
@@ -223,12 +225,12 @@ class _ForgotPasswordScreenState
                       height: 90,
                       width: 90,
                       decoration: BoxDecoration(
-                        color: blackColor,
+                        color: isDark ? peachColor : blackColor,
                         borderRadius: BorderRadius.circular(25),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.lock_reset,
-                        color: peachColor,
+                        color: isDark ? blackColor : peachColor,
                         size: 48,
                       ),
                     ),
@@ -236,36 +238,36 @@ class _ForgotPasswordScreenState
 
                   const SizedBox(height: 30),
 
-                  const Center(
+                  Center(
                     child: Text(
                       'Forgot Password?',
                       style: TextStyle(
                         fontSize: 27,
                         fontWeight: FontWeight.bold,
-                        color: blackColor,
+                        color: textColor,
                       ),
                     ),
                   ),
 
                   const SizedBox(height: 12),
 
-                  const Text(
-                    'Don\'t worry! Enter your registered email address '
-                    'and we will help you reset your password.',
+                  Text(
+                    'Enter your registered email address. '
+                    'We will send you a secure link to change your password.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
                       height: 1.6,
-                      color: darkTextColor,
+                      color: secondaryTextColor,
                     ),
                   ),
 
                   const SizedBox(height: 40),
 
-                  const Text(
+                  Text(
                     'Email Address',
                     style: TextStyle(
-                      color: blackColor,
+                      color: textColor,
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                     ),
@@ -276,11 +278,17 @@ class _ForgotPasswordScreenState
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    style: const TextStyle(
-                      color: peachColor,
+                    textInputAction: TextInputAction.done,
+                    style: TextStyle(color: fieldTextColor),
+                    cursorColor: iconColor,
+                    decoration: _inputDecoration(
+                      isDark: isDark,
+                      textColor: fieldTextColor,
+                      iconColor: iconColor,
                     ),
-                    cursorColor: peachColor,
-                    decoration: _inputDecoration(),
+                    onFieldSubmitted: (_) {
+                      if (!_isLoading) _resetPassword();
+                    },
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Please enter your email';
@@ -304,26 +312,28 @@ class _ForgotPasswordScreenState
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _resetPassword,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: blackColor,
-                        foregroundColor: peachColor,
+                        backgroundColor: buttonBackground,
+                        foregroundColor: buttonForeground,
                         disabledBackgroundColor:
-                            blackColor.withValues(alpha: 0.65),
+                            buttonBackground.withValues(alpha: 0.65),
+                        disabledForegroundColor:
+                            buttonForeground.withValues(alpha: 0.65),
                         elevation: 2,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
                       child: _isLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               height: 24,
                               width: 24,
                               child: CircularProgressIndicator(
-                                color: peachColor,
+                                color: buttonForeground,
                                 strokeWidth: 2.5,
                               ),
                             )
                           : const Text(
-                              'Reset Password',
+                              'Send Reset Link',
                               style: TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.bold,
@@ -338,18 +348,16 @@ class _ForgotPasswordScreenState
                     child: TextButton.icon(
                       onPressed: _isLoading
                           ? null
-                          : () {
-                              Navigator.pop(context);
-                            },
-                      icon: const Icon(
+                          : () => Navigator.pop(context),
+                      icon: Icon(
                         Icons.arrow_back,
                         size: 18,
-                        color: blackColor,
+                        color: textColor,
                       ),
-                      label: const Text(
+                      label: Text(
                         'Back to Login',
                         style: TextStyle(
-                          color: blackColor,
+                          color: textColor,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

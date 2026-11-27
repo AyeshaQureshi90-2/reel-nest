@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import '../models/movie_model.dart';
@@ -7,10 +8,14 @@ import 'movie_details_screen.dart';
 
 class CategoryScreen extends StatefulWidget {
   final String categoryTitle;
+  final bool isGuest;
+  final VoidCallback? onRequireLogin;
 
   const CategoryScreen({
     super.key,
     required this.categoryTitle,
+    this.isGuest = false,
+    this.onRequireLogin,
   });
 
   @override
@@ -42,13 +47,20 @@ class _CategoryScreenState extends State<CategoryScreen> {
   @override
   void initState() {
     super.initState();
+
     contentFuture = TmdbApiService.fetchCategoryContent(
       widget.categoryTitle,
     );
+
     FavoritesService.initialize();
   }
 
   Future<void> toggleFavorite(MovieModel movie) async {
+    if (widget.isGuest) {
+      widget.onRequireLogin?.call();
+      return;
+    }
+
     await FavoritesService.initialize();
 
     final alreadyFavorite =
@@ -89,7 +101,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MovieDetailsScreen(movie: movie),
+        builder: (context) => MovieDetailsScreen(
+          movie: movie,
+          isGuest: widget.isGuest,
+          onRequireLogin: widget.onRequireLogin,
+        ),
       ),
     );
   }

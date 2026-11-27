@@ -60,10 +60,14 @@ class MovieDetailsProvider extends ChangeNotifier {
 
 class MovieDetailsScreen extends StatefulWidget {
   final MovieModel movie;
+  final bool isGuest;
+  final VoidCallback? onRequireLogin;
 
   const MovieDetailsScreen({
     super.key,
     required this.movie,
+    this.isGuest = false,
+    this.onRequireLogin,
   });
 
   @override
@@ -147,8 +151,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                       _infoChip(
                         movie.mediaType == 'tv' ? 'TV Show' : 'Movie',
                       ),
-                      if (details != null &&
-                          details.rating > 0)
+                      if (details != null && details.rating > 0)
                         _infoChip(
                           '★ ${details.rating.toStringAsFixed(1)} / 10',
                         ),
@@ -197,9 +200,12 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                     const SizedBox(height: 12),
 
                     _detailRow('Release Date', details.releaseDate),
-                    _detailRow('Runtime', details.runtime != null
-                        ? '${details.runtime} minutes'
-                        : 'Not available'),
+                    _detailRow(
+                      'Runtime',
+                      details.runtime != null
+                          ? '${details.runtime} minutes'
+                          : 'Not available',
+                    ),
                     _detailRow('Status', details.status),
                     _detailRow('Language', details.originalLanguage),
                     _detailRow('Director', details.director),
@@ -290,10 +296,17 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                     child: ElevatedButton.icon(
                       onPressed: provider.trailerKey == null
                           ? null
-                          : () => _watchTrailer(
+                          : () {
+                              if (widget.isGuest) {
+                                widget.onRequireLogin?.call();
+                                return;
+                              }
+
+                              _watchTrailer(
                                 provider.trailerKey!,
                                 movie.title,
-                              ),
+                              );
+                            },
                       icon: const Icon(Icons.play_arrow),
                       label: const Text('Watch Trailer'),
                       style: ElevatedButton.styleFrom(
@@ -341,6 +354,9 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                                 MaterialPageRoute(
                                   builder: (_) => MovieDetailsScreen(
                                     movie: similar,
+                                    isGuest: widget.isGuest,
+                                    onRequireLogin:
+                                        widget.onRequireLogin,
                                   ),
                                 ),
                               );

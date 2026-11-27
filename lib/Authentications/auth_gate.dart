@@ -5,8 +5,31 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../screens/home_screen.dart';
 import 'login_screen.dart';
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  bool _isGuest = false;
+
+  void _continueAsGuest() {
+    setState(() {
+      _isGuest = true;
+    });
+  }
+
+  void _requireLogin() {
+    setState(() {
+      _isGuest = false;
+    });
+
+    Navigator.of(context).popUntil(
+      (route) => route.isFirst,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,10 +58,22 @@ class AuthGate extends StatelessWidget {
         }
 
         if (snapshot.data != null) {
-          return const HomeScreen();
+          return HomeScreen(
+            isGuest: false,
+            onRequireLogin: _requireLogin,
+          );
         }
 
-        return const LoginScreen();
+        if (_isGuest) {
+          return HomeScreen(
+            isGuest: true,
+            onRequireLogin: _requireLogin,
+          );
+        }
+
+        return LoginScreen(
+          onContinueAsGuest: _continueAsGuest,
+        );
       },
     );
   }

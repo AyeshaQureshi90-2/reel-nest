@@ -11,7 +11,14 @@ import 'category_screen.dart';
 import 'movie_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final bool isGuest;
+  final VoidCallback onRequireLogin;
+
+  const HomeScreen({
+    super.key,
+    required this.isGuest,
+    required this.onRequireLogin,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -75,12 +82,22 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void changeTab(int index) {
+    if (widget.isGuest && index == 2) {
+      widget.onRequireLogin();
+      return;
+    }
+
     setState(() {
       selectedTab = index;
     });
   }
 
   Future<void> toggleFavorite(MovieModel movie) async {
+    if (widget.isGuest) {
+      widget.onRequireLogin();
+      return;
+    }
+
     await FavoritesService.initialize();
 
     final isAlreadyFavorite =
@@ -118,7 +135,11 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => MovieDetailsScreen(movie: movie),
+        builder: (context) => MovieDetailsScreen(
+          movie: movie,
+          isGuest: widget.isGuest,
+          onRequireLogin: widget.onRequireLogin,
+        ),
       ),
     );
   }
@@ -129,6 +150,8 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute(
         builder: (context) => CategoryScreen(
           categoryTitle: title,
+          isGuest: widget.isGuest,
+          onRequireLogin: widget.onRequireLogin,
         ),
       ),
     );
@@ -142,9 +165,15 @@ class _HomeScreenState extends State<HomeScreen> {
         index: selectedTab,
         children: [
           _buildHomeContent(),
-          const SearchScreen(),
+          SearchScreen(
+            isGuest: widget.isGuest,
+            onRequireLogin: widget.onRequireLogin,
+          ),
           const FavoritesScreen(),
-          const ProfileScreen(),
+          ProfileScreen(
+            isGuest: widget.isGuest,
+            onRequireLogin: widget.onRequireLogin,
+          ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -599,4 +628,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-

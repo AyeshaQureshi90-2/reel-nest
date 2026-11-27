@@ -12,7 +12,14 @@ import 'profile/help_support_screen.dart';
 import 'favorites_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final bool isGuest;
+  final VoidCallback? onRequireLogin;
+
+  const ProfileScreen({
+    super.key,
+    this.isGuest = false,
+    this.onRequireLogin,
+  });
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -58,12 +65,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfile() async {
     final prefs = await SharedPreferences.getInstance();
+    final user = FirebaseAuth.instance.currentUser;
 
     if (!mounted) return;
 
+    final firebaseName = user?.displayName?.trim();
+    final firebaseEmail = user?.email?.trim();
+
     setState(() {
-      profileName = prefs.getString('profile_name');
-      profileEmail = prefs.getString('profile_email');
+      profileName = firebaseName != null && firebaseName.isNotEmpty
+          ? firebaseName
+          : prefs.getString('profile_name');
+
+      profileEmail = firebaseEmail != null && firebaseEmail.isNotEmpty
+          ? firebaseEmail
+          : prefs.getString('profile_email');
+
       profileImagePath = prefs.getString('profile_image_path');
     });
   }
@@ -77,7 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     if (result == true) {
-      _loadProfile();
+      await _loadProfile();
     }
   }
 
@@ -296,7 +313,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 15),
 
-              _buildLogoutOption(),
+              if (!widget.isGuest) _buildLogoutOption(),
 
               const SizedBox(height: 25),
 
